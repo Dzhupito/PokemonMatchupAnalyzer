@@ -34,7 +34,7 @@ class Match:
         self.replay_link = ""
 
 def get_showdown_page(page):
-    sleep(10)
+    #sleep(10)
     response = None
 
     while response is None:
@@ -46,35 +46,8 @@ def get_showdown_page(page):
 
     return response
 
-def get_date(address):
-    print (address)
-    date = 0 
-    if metagame in address : 
-        sleep(0.5)
-        replay = None
-
-        while replay is None:
-            try:
-                replay = requests.get(address)
-            except Exception:
-                sleep(150)
-                replay = None
-
-        soup = BeautifulSoup(replay.text, 'html.parser')
-        #date = 0 
-        try:
-            date = soup.findAll("small", {"class": "uploaddate"})[0]['data-timestamp']
-        except:
-            print("Date exception thrown")
-            date = "0"
-            return int(date)
-    return int(date)
-
-#         date = get_date(host + l.a['href'])
-
-
 def get_replay(address):
-    sleep(2)
+    #sleep(2)
     replay_log = None
 
     while replay_log is None:
@@ -108,12 +81,7 @@ def write_json ():
         date_object[metagame] = entries_array[0]["date"]
         date_file = open(threshold_path, "w")
         json.dump(date_object, date_file)
-        date_file.close()
-    
-
-    # json.dump(date_object, date_file)
-    # date_file.close()
-    
+        date_file.close() 
 
 def manage_json(match):
     new_entry = {
@@ -124,7 +92,7 @@ def manage_json(match):
                 "player1_name": match.p1.name, 
                 "player1_rating": match.p1.rating,
                 "player1_team": match.p1.team, 
-                "palyer1_lead": match.p1.lead,
+                "player1_lead": match.p1.lead,
                 "player1_back": match.p1.back,
                 "player1_dynamax": match.p1.dynamaxed,
             },
@@ -132,7 +100,7 @@ def manage_json(match):
                 "player2_name": match.p2.name, 
                 "player2_rating": match.p2.rating,
                 "player2_team": match.p2.team, 
-                "palyer2_lead": match.p2.lead,
+                "player2_lead": match.p2.lead,
                 "player2_back": match.p2.back,
                 "player2_dynamax": match.p2.dynamaxed,
             },
@@ -142,14 +110,12 @@ def manage_json(match):
     }
     entries_array.append(new_entry)
 
-def get_teams_from_replay(replay_log, date, replay_url):
+def get_teams_from_replay(replay_log, replay_url):
     print ("-------------------- new match")
-    print (date)
     match = Match()
-    match.date=int(date)
     match.replay_link = replay_url
+    print (match.replay_link)
     match.metagame=metagame
-
     nicknames_pokemons = [[],[]]
 
     for n in [x for x in replay_log.text.split('\n')] :
@@ -161,6 +127,15 @@ def get_teams_from_replay(replay_log, date, replay_url):
             match.p2.name=n.split('|')[3]
             if n.split('|')[-1]!='':
                 match.p2.rating=int(n.split('|')[-1])
+        if n.startswith("|t:|") and match.date==0:
+            match.date=int(n.split('|')[2])
+            print (match.date)
+            if match.date <= int(threshold_date) :
+                print ("new entries " + str(len(entries_array)))
+                print (entries_array[-1])
+                write_json()
+                check()
+                exit()
         if n.startswith('|-start|') and "Dynamax" in n:
             dynamaxed_pokemon = n.split('|')[2].split(': ')[1]
             i=0
@@ -231,30 +206,22 @@ def get_teams_from_replay(replay_log, date, replay_url):
                 match.p2.team.append(pokemon)
         if n.startswith("|win|") :
             match.winner = n.split('|')[2]
-    manage_json(match)
+    if match.date==0 :
+        print ("retry....")
+        replay_log = get_replay(replay_url + '.log')
+        print (replay_log)
+        get_teams_from_replay(replay_log, replay_url)
+    else :
+        manage_json(match)
 
 
 def get_replay_links(replay_list):
-    
     for replay_params in replay_list :
-        #print (replay_params)
         replay_url = showdown_url + replay_params.a['href']
         if replay_url not in replay_links_list :
-            print (replay_url)
             replay_links_list.append(replay_url)
             replay_log = get_replay(replay_url + '.log')
-            date = get_date(showdown_url + replay_params.a['href'])
-            if int(date) <= int(threshold_date) :
-                print ("new entries " + str(len(entries_array)))
-                print (entries_array[-1])
-                write_json()
-                exit()
-            # if date < threshold --> break the loop
-            get_teams_from_replay (replay_log, date, replay_url)
-            #print (teams)
-            #replay_links_list.append(replay_params.a['href'])
-            #print (datetime.fromtimestamp(get_date(showdown_url + replay_params.a['href'])).strftime("%A, %B %d, %Y %H:%M:%S"))
-    return replay_links_list
+            get_teams_from_replay (replay_log, replay_url)
 
 def get_replay_list(page):
     print("Retrieving page {}".format(page))
@@ -275,28 +242,21 @@ def retrieve_threshold():
 
 
 def run():
-    #unique_teams = set()
-    #teams = []
-    #threshold_date = (datetime.datetime(2020, 6, 24) - datetime.datetime(1970,1,1)).total_seconds()
     retrieve_threshold()
-    replay_list = []
-    replay_data = []
+    replay_links_list = []
 
-    page = 15
+    page = 1
     print("Retrieving Main Format Teams: " + replay_format)
     while page != -1:
-        #teams, unique_teams = get_teams(replay_format, page)
-        replay_data = get_replay_list(page)
-        if len(replay_data) > 7 :
-            replay_list += get_replay_links(replay_data)
+        replay_list = get_replay_list(page)
+        if len(replay_list) > 7 :
+            get_replay_links(replay_list)
             page += 1
         else :
             page = -1 
     
     print(len(replay_links_list))
-    # teams.extend([list(t) for t in unique_teams])
-    # print("Writing {} sample teams".format(len(teams)))
-    # write_teams(write_loc, teams)
+    write_json()
 
 def check() :
     with open(json_path, 'r') as data_file:
@@ -306,15 +266,4 @@ def check() :
 
 if __name__=="__main__":
     run()
-    write_json()
-    #check()
-    #insert main.
-
-
-
-
-
-# to do:
-# beautify the code
-# add threshold and a control in json.
-# define class for trainers-pokemon
+    check()
