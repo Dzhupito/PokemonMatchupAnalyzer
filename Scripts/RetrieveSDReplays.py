@@ -159,6 +159,10 @@ def get_teams_from_replay(replay_log, replay_url):
                             match.p2.dynamaxed = match.p2.back[i-2]
                             i = 3
                     i+=1
+        if n.startswith("|-formechange|p1") and "Gmax" in n:
+            match.p1.dynamaxed+="-Gmax"
+        if n.startswith("|-formechange|p2") and "Gmax" in n:
+            match.p2.dynamaxed+="-Gmax"
         if n.startswith("|switch|p1") and len(match.p1.back)<2:
             pokemon = n.split('|')[3].split(', ')[0]
             pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-*", "").replace("’", "'") 
