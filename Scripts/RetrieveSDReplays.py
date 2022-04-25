@@ -7,7 +7,7 @@ import requests
 from time import sleep
 
 showdown_url="https://replay.pokemonshowdown.com"
-metagame="gen8vgc2021series11"
+metagame="gen8vgc2022"
 threshold_path="../Database/date.json"
 threshold_date=0
 replay_format="/search?user=&format="+metagame+"&page={}"
@@ -177,7 +177,7 @@ def get_teams_from_replay(replay_log, replay_url):
             match.p2.dynamaxed+="-Gmax"
         if n.startswith("|switch|p1") or n.startswith("|drag|p1") and len(match.p1.back)<2:
             pokemon = n.split('|')[3].split(', ')[0]
-            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-Busted", "").replace("-*", "").replace("’", "'") 
+            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-Busted", "").replace("-*", "").replace("’", "'").replace("-Complete", "") 
             if "Urshifu" in pokemon :
                 i = 0
                 while i<len(match.p1.team) :
@@ -192,7 +192,7 @@ def get_teams_from_replay(replay_log, replay_url):
                 nicknames_pokemons[0].append(n.split('|')[2].split(': ')[1])
         if n.startswith("|switch|p2") or n.startswith("|drag|p2") and len(match.p2.back)<2:
             pokemon = n.split('|')[3].split(', ')[0]
-            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-*", "").replace("-Busted","").replace("’", "'")
+            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-*", "").replace("-Busted","").replace("’", "'").replace("-Complete", "")
             if "Urshifu" in pokemon :
                 i = 0
                 while i<len(match.p2.team) :
@@ -209,7 +209,7 @@ def get_teams_from_replay(replay_log, replay_url):
             
         if n.startswith("|poke") :
             pokemon = n.split('|')[3].split(', ')[0]
-            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-Busted", "").replace("’", "'")
+            pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-Busted", "").replace("’", "'").replace("-Complete", "")
             if "Urshifu" not in pokemon :
                 pokemon = pokemon.replace("-*", "")
 
