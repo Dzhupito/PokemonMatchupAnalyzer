@@ -7,7 +7,7 @@ import requests
 from time import sleep
 
 showdown_url="https://replay.pokemonshowdown.com"
-metagame="gen8vgc2022"
+metagame="gen9doublesou"
 threshold_path="../Database/date.json"
 threshold_date=0
 replay_format="/search?user=&format="+metagame+"&page={}"
@@ -22,7 +22,8 @@ class Player:
         print(self.team)
         print(self.lead)
         print(self.back)
-        print(self.dynamaxed)
+        print(self.terastallized)
+        print(self.terastallized_type)
 
     def __init__(self):
         self.name = ""
@@ -30,8 +31,9 @@ class Player:
         self.team = []
         self.lead = []
         self.back = []
-        self.dynamaxed = ""
-
+        self.terastallized = ""
+        self.terastallized_type = ""
+        
 class Match:
     def print(self):
         print(self.date)
@@ -107,7 +109,8 @@ def manage_json(match):
                 "player1_team": match.p1.team, 
                 "player1_lead": match.p1.lead,
                 "player1_back": match.p1.back,
-                "player1_dynamax": match.p1.dynamaxed,
+                "player1_terastallized": match.p1.terastallized,
+                "player1_terastallized_type": match.p1.terastallized_type,
             },
             {
                 "player2_name": match.p2.name, 
@@ -115,7 +118,8 @@ def manage_json(match):
                 "player2_team": match.p2.team, 
                 "player2_lead": match.p2.lead,
                 "player2_back": match.p2.back,
-                "player2_dynamax": match.p2.dynamaxed,
+                "player2_terastallized": match.p2.terastallized,
+                "player2_terastallized_type": match.p2.terastallized_type,
             },
         ],
         "winner": match.winner,
@@ -148,33 +152,32 @@ def get_teams_from_replay(replay_log, replay_url):
                 write_json()
                 check()
                 exit()
-        if n.startswith('|-start|') and "Dynamax" in n:
-            dynamaxed_pokemon = n.split('|')[2].split(': ')[1]
+        if  n.startswith('|-terastallize|'):
+            terastallized_pokemon = n.split('|')[2].split(': ')[1]
+            terastallized_type = n.split('|')[3]
             i=0
-            if n.startswith('|-start|p1') :
+            if n.startswith('|-terastallize|p1') :
                 while i < (len(match.p1.back) + 2) :
-                    if nicknames_pokemons[0][i] == dynamaxed_pokemon :
+                    if nicknames_pokemons[0][i] == terastallized_pokemon :
                         if i < 2 :
-                            match.p1.dynamaxed =  match.p1.lead[i]
-                            i = 3
+                            match.p1.terastallized = match.p1.lead[i]
+                            i = 15
                         else :
-                            match.p1.dynamaxed = match.p1.back[i-2]
-                            i = 3
+                            match.p1.terastallized = match.p1.back[i-2]
+                            i = 15
                     i+=1
+                match.p1.terastallized_type = terastallized_type
             else : 
                 while i < (len(match.p2.back) + 2) :
-                    if nicknames_pokemons[1][i] == dynamaxed_pokemon:
+                    if nicknames_pokemons[1][i] == terastallized_pokemon:
                         if i < 2 :
-                            match.p2.dynamaxed =  match.p2.lead[i]
-                            i = 3
+                            match.p2.terastallized = match.p2.lead[i]
+                            i = 15
                         else :
-                            match.p2.dynamaxed = match.p2.back[i-2]
-                            i = 3
+                            match.p2.terastallized = match.p2.back[i-2]
+                            i = 15
                     i+=1
-        if n.startswith("|-formechange|p1") and "Gmax" in n:
-            match.p1.dynamaxed+="-Gmax"
-        if n.startswith("|-formechange|p2") and "Gmax" in n:
-            match.p2.dynamaxed+="-Gmax"
+                match.p2.terastallized_type = terastallized_type
         if n.startswith("|switch|p1") or n.startswith("|drag|p1") and len(match.p1.back)<2:
             pokemon = n.split('|')[3].split(', ')[0]
             pokemon = pokemon.replace("-East", "").replace("-West", "").replace("-Busted", "").replace("-*", "").replace("’", "'").replace("-Complete", "") 
