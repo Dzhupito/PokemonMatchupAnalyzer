@@ -7,7 +7,7 @@ import requests
 from time import sleep
 
 showdown_url="https://replay.pokemonshowdown.com"
-metagame="gen9doublesou"
+metagame="gen9vgc2023series1"
 threshold_path="../Database/date.json"
 threshold_date=0
 replay_format="/search?user=&format="+metagame+"&page={}"
