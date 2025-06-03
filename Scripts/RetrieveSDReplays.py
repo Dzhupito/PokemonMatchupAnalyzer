@@ -5,14 +5,24 @@ import os
 import json
 import requests
 from time import sleep
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+#from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+#from webdriver_manager.chrome import ChromeDriverManager
 
 showdown_url="https://replay.pokemonshowdown.com"
-metagame="gen9vgc2023series1"
+metagame="gen9vgc2025regi"
+#metagame="gen9vgc2023regulatione"
+json_metagame="gen9vgc2025regi"
 threshold_path="../Database/date.json"
 threshold_date=0
-replay_format="/search?user=&format="+metagame+"&page={}"
-json_path="../Database/sd_"+metagame+".json"
+#replay_format="/search?user=&format="+metagame+"&page={}"
+replay_format="/?format="+metagame+"&page={}"
+json_path="../Database/sd_"+json_metagame+".json"
 replay_links_list = []
+replays_taken=10000
 entries_array = []
 
 class Player:
@@ -90,13 +100,13 @@ def write_json ():
                 entries_array+=already_present_entries
             json.dump(entries_array, outfile)
             outfile.close()
-        date_file = open(threshold_path, "r")
-        date_object = json.load(date_file)
-        date_file.close()
-        date_object[metagame] = entries_array[0]["date"]
-        date_file = open(threshold_path, "w")
-        json.dump(date_object, date_file)
-        date_file.close() 
+    date_file = open(threshold_path, "r")
+    date_object = json.load(date_file)
+    date_file.close()
+    date_object[metagame] = entries_array[0]["date"]
+    date_file = open(threshold_path, "w")
+    json.dump(date_object, date_file)
+    date_file.close() 
 
 def manage_json(match):
     new_entry = {
@@ -126,6 +136,7 @@ def manage_json(match):
         "replay_url": match.replay_link,
     }
     entries_array.append(new_entry)
+    #print (entries_array)
 
 def get_teams_from_replay(replay_log, replay_url):
     print ("-------------------- new match")
@@ -148,8 +159,9 @@ def get_teams_from_replay(replay_log, replay_url):
             print (match.date)
             if match.date <= int(threshold_date) :
                 print ("new entries " + str(len(entries_array)))
-                print (entries_array[-1])
-                write_json()
+                if len(entries_array)>0:
+                    print (entries_array[-1])
+                    write_json()
                 check()
                 exit()
         if  n.startswith('|-terastallize|'):
@@ -233,6 +245,14 @@ def get_teams_from_replay(replay_log, replay_url):
     else :
         manage_json(match)
 
+def retrieve_game(i):
+    replay_url = showdown_url + "/" + metagame + "-" + str(threshold_date + i)
+    #if replay_url not in replay_links_list :
+    replay_log = get_replay(replay_url + '.log')
+    if (replay_log.status_code == 200):
+        get_teams_from_replay (replay_log, replay_url)
+                
+
 
 def get_replay_links(replay_list):
     for replay_params in replay_list :
@@ -262,18 +282,31 @@ def retrieve_threshold():
 
 def run():
     retrieve_threshold()
-    replay_links_list = []
+    #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    #options=Options()
+    #firefox_profile = FirefoxProfile()
+    driver = webdriver.Firefox()
 
     page = 1
     print("Retrieving Main Format Teams: " + replay_format)
     while page != -1:
-        replay_list = get_replay_list(page)
-        if len(replay_list) > 7 :
-            get_replay_links(replay_list)
-            page += 1
-        else :
-            page = -1 
-    
+        print ("Retrieving page {}".format(page))
+        url = showdown_url + replay_format.format(page)
+        # set maximum time to load the web page in seconds
+        driver.implicitly_wait(10)
+        # load the web page
+        driver.get(url)
+        selector = driver.find_elements(By.CLASS_NAME,'blocklink')
+        if len(selector)>0:
+            for link in selector:
+                replay_url = str(link.get_attribute("href"))
+                if replay_url not in replay_links_list :
+                    replay_links_list.append(replay_url)
+                    replay_log = get_replay(replay_url + '.log')
+                    get_teams_from_replay (replay_log, replay_url)
+            page +=1
+        else:
+            page = -1
     print(len(replay_links_list))
     write_json()
 
